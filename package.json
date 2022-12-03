@@ -3,7 +3,7 @@
     "publisher": "bodil",
     "displayName": "File Browser",
     "description": "A nicer alternative to the file open dialog.",
-    "version": "0.2.11",
+    "version": "9999.2.11",
     "license": "LGPL-3.0+",
     "author": {
         "name": "Bodil Stokke",
@@ -26,7 +26,10 @@
     ],
     "activationEvents": [
         "onCommand:file-browser.open",
-        "onCommand:file-browser.rename"
+        "onCommand:file-browser.rename",
+        "onCommand:zsome.hideBottomSidePanel",
+        "onCommand:zsome.openWithStartDir",
+        "onCommand:zsome.openCurrentWorkspace"
     ],
     "main": "./out/extension.js",
     "extensionKind": [
@@ -91,6 +94,14 @@
             {
                 "command": "file-browser.actions",
                 "title": "File Browser: Actions"
+            },
+            {
+                "command": "zsome.hideBottomSidePanel",
+                "title": "Zsome: Hide bottom and side panels"
+            },
+            {
+                "command": "zsome.openCurrentWorkspace",
+                "title": "Zsome: open current workspace's directory"
             }
         ],
         "keybindings": [
@@ -105,7 +116,7 @@
                 "when": "inFileBrowser"
             },
             {
-                "key": "ctrl+a",
+                "key": "alt+a",
                 "command": "file-browser.actions",
                 "when": "inFileBrowser"
             },

@@ -7,6 +7,7 @@ export enum Action {
     DeleteFile,
     OpenFolder,
     OpenFolderInNewWindow,
+    SearchFolder,
 }
 
 export function action(label: string, action: Action) {

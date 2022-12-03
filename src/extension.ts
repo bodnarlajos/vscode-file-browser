@@ -1,3 +1,4 @@
+import * as nodepath from 'path';
 import * as vscode from "vscode";
 import { Uri, QuickPickItem, FileType, QuickInputButton, ThemeIcon, ViewColumn } from "vscode";
 import * as OS from "os";
@@ -8,6 +9,7 @@ import { Path, endsWithPathSeparator } from "./path";
 import { Rules } from "./filter";
 import { FileItem, fileRecordCompare } from "./fileitem";
 import { action, Action } from "./action";
+import path = require('path');
 
 export enum ConfigItem {
     RemoveIgnoredFiles = "removeIgnoredFiles",
@@ -123,6 +125,7 @@ class FileBrowser {
                 ),
                 action("$(edit) Rename this folder", Action.RenameFile),
                 action("$(trash) Delete this folder", Action.DeleteFile),
+                action("$(folder-opened) Search in this folder", Action.SearchFolder),
             ];
             this.current.items = this.items;
         } else if (stat && (stat.type & FileType.Directory) === FileType.Directory) {
@@ -169,6 +172,8 @@ class FileBrowser {
                         this.stepIntoFolder(Path.fromFilePath(OS.homedir()));
                     } else if (path === "..") {
                         this.stepOut();
+                    } else if (path.startsWith("#")) {
+                        this.stepIntoFolder(Path.fromFilePath(path.replace(/#/gi, "/")));
                     } else {
                         this.stepIntoFolder(this.path.append(path));
                     }
@@ -421,6 +426,36 @@ class FileBrowser {
                 vscode.commands.executeCommand("vscode.openFolder", this.path.uri, true);
                 break;
             }
+            case Action.SearchFolder: {
+                const editor = vscode.window.activeTextEditor;
+                const selectedText = editor?.document.getText(editor.selection);
+                let queryText = "";
+                if (selectedText !== null && selectedText !== undefined) {
+                    queryText = selectedText;
+                }
+                let currDir: string | null = null;
+                if (this.path.uri.scheme === 'file') {
+                    currDir = nodepath.dirname(this.path.fsPath);
+                } else {
+                    currDir = this.path.fsPath;
+                }
+
+                vscode.commands.executeCommand("search.action.openNewEditor", {
+                    "query": queryText,
+                    "isRegexp": true,
+                    "isCaseSensitive": false,
+                    "matchWholeWord": false,
+                    "filesToInclude": currDir,
+                    "filesToExclude": "",
+                    "showIncludesExcludes": true,
+                    "useExcludeSettingsAndIgnoreFiles": true,
+                    "contextLines": 2,
+                    "triggerSearch": true,
+                    "focusResults": false
+                });
+                break;
+            }
+
             default:
                 throw new Error(`Unhandled action ${item.action}`);
         }
@@ -484,6 +519,32 @@ export function activate(context: vscode.ExtensionContext) {
             active.ifSome((active) => active.tabCompletion(false))
         )
     );
+    context.subscriptions.push(
+        vscode.commands.registerCommand("zsome.hideBottomSidePanel", () => {
+            vscode.commands.executeCommand("workbench.action.closePanel");
+            vscode.commands.executeCommand("workbench.action.closeSidebar");
+        })
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand("zsome.openWithStartDir", (args) => {
+            let path = new Path(Uri.file(args[0]));
+            let file = Some(path.fsPath);
+            active = Some(new FileBrowser(path, file));
+            setContext(true);
+        })
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand("zsome.openCurrentWorkspace", () => {
+            const wsf = vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders[0];
+            if (wsf?.uri) {
+                const currpath = Uri.parse(nodepath.dirname(wsf.uri.fsPath));
+                let path = new Path(currpath);
+                let file = Some(path.fsPath);
+                active = Some(new FileBrowser(path, file));
+            }
+            setContext(true);
+        })
+    );
 }
 
-export function deactivate() {}
+export function deactivate() { }
